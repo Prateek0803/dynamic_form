@@ -1,9 +1,22 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setFormData, selectFormData } from "../redux/formSlice";
+import { setFormData, selectFormData, clearFormData } from "../redux/formSlice";
 import { Fields, FormFields } from "../utils/constants";
+import {
+  Button,
+  Container,
+  FieldGroup,
+  FieldText,
+  FormContainer,
+  Row,
+  StyledInput,
+  StyledSelect,
+  StyledTextarea,
+  ThankYou,
+} from "./StyledElements";
 
 const Form: FC = () => {
+  const [showUiData, setShowUiData] = useState<boolean>(false);
   const dispatch = useDispatch();
   const formData = useSelector(selectFormData);
 
@@ -17,7 +30,7 @@ const Form: FC = () => {
   };
 
   const renderInputField = (field: Fields) => (
-    <input
+    <StyledInput
       key={field.id}
       name={field.id}
       type={field.type}
@@ -25,18 +38,16 @@ const Form: FC = () => {
       placeholder={field.placeholder}
       onChange={onChangeHandler}
       value={formData[field.id] || ""}
-      style={{padding:'0.5rem', margin:'0.5rem'}}
     />
   );
 
   const renderSelectField = (field: Fields) => (
-    <select
+    <StyledSelect
       key={field.id}
       name={field.id}
       required={field.required}
       value={formData[field.id] || ""}
       onChange={onChangeHandler}
-      style={{padding:'0.5rem', margin:'0.5rem'}}
     >
       <option value="" disabled>
         {field.placeholder}
@@ -46,57 +57,109 @@ const Form: FC = () => {
           {option}
         </option>
       ))}
-    </select>
+    </StyledSelect>
   );
 
   const renderTextAreaField = (field: Fields) => (
-    <textarea
+    <StyledTextarea
       key={field.id}
       name={field.id}
       required={field.required}
       placeholder={field.placeholder}
       onChange={onChangeHandler}
       value={formData[field.id] || ""}
-      style={{padding:'0.5rem', margin:'0.5rem'}}
     />
   );
 
+  const isFormValid = (formData: any) => {
+    for (const field of FormFields) {
+      if (Array.isArray(field)) {
+        for (const subField of field) {
+          if (subField.required && !formData[subField.id]) {
+            return false;
+          }
+        }
+      } else if (field.required && !formData[field.id]) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleSubmit = () => {
+    if (isFormValid(formData)) {
+      setShowUiData(true);
+    } else {
+      alert("Form validation failed");
+    }
+  };
+
+  const handleClear = () => {
+    dispatch(clearFormData());
+    setShowUiData(false);
+  };
+
   return (
-    <div
-      style={{
-        height: 'inherit',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      {FormFields.map((ins) =>
-        Array.isArray(ins) ? (
-          <div key={ins[0].id}>
-            {ins.map((field) =>
-              field.type === "input"
-                ? renderInputField(field)
-                : field.type === "select"
-                ? renderSelectField(field)
-                : field.type === "textarea"
-                ? renderTextAreaField(field)
-                : null
-            )}
+    <Container>
+      <FormContainer>
+        {!showUiData ? (
+          <div>
+            {FormFields.map((ins: any) => (
+              <Row key={ins.id}>
+                {Array.isArray(ins) ? (
+                  ins.map((field) => (
+                    <FieldGroup key={field.id}>
+                      {field.type === "input"
+                        ? renderInputField(field)
+                        : field.type === "select"
+                        ? renderSelectField(field)
+                        : field.type === "textarea"
+                        ? renderTextAreaField(field)
+                        : null}
+                    </FieldGroup>
+                  ))
+                ) : (
+                  <FieldGroup key={ins.id}>
+                    {ins.type === "input"
+                      ? renderInputField(ins)
+                      : ins.type === "select"
+                      ? renderSelectField(ins)
+                      : ins.type === "textarea"
+                      ? renderTextAreaField(ins)
+                      : null}
+                  </FieldGroup>
+                )}
+              </Row>
+            ))}
+            <Button type="submit" onClick={handleSubmit}>
+              Submit
+            </Button>
           </div>
         ) : (
           <div>
-            {ins.type === "input"
-              ? renderInputField(ins)
-              : ins.type === "select"
-              ? renderSelectField(ins)
-              : ins.type === "textarea"
-              ? renderTextAreaField(ins)
-              : null}
+              <ThankYou>Thank you for submitting the form</ThankYou>
+              {FormFields.map((ins: any, index) => (
+                <Row key={index}>
+                  {Array.isArray(ins) ? (
+                    ins.map((field) => (
+                      <FieldGroup key={field.id}>
+                        <FieldText>{formData[field.id] || "-"}</FieldText>
+                      </FieldGroup>
+                    ))
+                  ) : (
+                    <FieldGroup key={ins.id}>
+                      <FieldText>{formData[ins.id] || "-"}</FieldText>
+                    </FieldGroup>
+                  )}
+                </Row>
+              ))}
+              <Button type="button" onClick={handleClear}>
+                Close
+              </Button>
           </div>
-        )
-      )}
-    </div>
+        )}
+      </FormContainer>
+    </Container>
   );
 };
 
